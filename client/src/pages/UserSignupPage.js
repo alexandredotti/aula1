@@ -6,6 +6,7 @@ export class UserSignupPage extends React.Component {
         username: '',
         password: '',
         passwordRepeat: '',
+        pendingApiCall: false,
     }
 
     onChangeDisplayName = (event) => {
@@ -30,7 +31,10 @@ export class UserSignupPage extends React.Component {
             username: this.state.username,
             password: this.state.password
         }
-        this.props.actions.postSignup(user);
+        this.setState({pendingApiCall: true});
+        this.props.actions.postSignup(user).then(response => {
+            this.setState({ pendingApiCall: false});
+        });
     }
     render() {
         return (
@@ -65,7 +69,15 @@ export class UserSignupPage extends React.Component {
                         value={this.state.passwordRepeat} />
                 </div>
                 <div className="text-center">
-                    <button className="btn btn-primary" onClick={this.onClickSignup}>Cadastrar</button>
+                    <button disabled={this.state.pendingApiCall} className="btn btn-primary" onClick={this.onClickSignup}
+                    >
+                        {this.state.pendingApiCall &&(
+                            <div class="spinner-border text-light-spinner spinner-border-sm mr-sm-1" role="status">
+                                <span class="visually-hidden">Aguarde...</span>
+                            </div>
+                        )}
+                        Cadastrar
+                    </button>
                 </div>
             </div>
         );

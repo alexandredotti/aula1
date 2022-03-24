@@ -1,4 +1,4 @@
-import { fireEvent, render } from "@testing-library/react";
+import { fireEvent, render, waitForElementToBeRemoved } from "@testing-library/react";
 import { UserSignupPage } from './UserSignupPage';
 
 describe('UserSignupPage', () => {
@@ -60,9 +60,21 @@ describe('UserSignupPage', () => {
                 },
             }
         };
+
+        const mockAsyncDelayed = () => {
+            return jest.fn().mockImplementation(() => {
+                return new Promise((resolve, reject) => {
+                    setTimeout(() => {
+                        resolve({});
+                    }, 500);
+                });
+            })
+        }
+
         let displayNameInput, usernameInput, passwordInput, passwordRepeatInput, button;
         const setupForSubmit = (props) => {
             const rendered = render(<UserSignupPage {...props} />);
+
             const {container, queryByPlaceholderText} = rendered;
 
             displayNameInput = queryByPlaceholderText('Informe o seu nome');
@@ -79,7 +91,7 @@ describe('UserSignupPage', () => {
 
             return rendered;
         }
-
+        
         it('sets the displayName value into state', () => {
             const { queryByPlaceholderText } = render(<UserSignupPage />);
             const displayNameInput = queryByPlaceholderText('Informe o seu nome');
@@ -105,7 +117,7 @@ describe('UserSignupPage', () => {
             expect(passwordRepeatInput).toHaveValue('P4ssword');
         });
 
-        it('call postSignup when the fields are valid and the actions are provided in props', ()=>{
+        it('call postSignup when the fields are valid and the actions are provided in props', () => {
             const actions = {
                 postSignup: jest.fn().mockResolvedValueOnce({}),
             }
@@ -114,27 +126,62 @@ describe('UserSignupPage', () => {
             fireEvent.click(button);
             expect(actions.postSignup).toHaveBeenCalledTimes(1);
         });
+   
 
-        it('does not throw exception when clicking the button when actions are not provided in props', ()=>{
+        it('does not throw exception when clicking the button when actions are not provided in props', () => {
             setupForSubmit();
             expect(() => fireEvent.click(button)).not.toThrow();
         });
 
-        it('call post with user body when the fields are valid', ()=>{
+        it('call post with user body when the fields are valid', () => {
             const actions = {
                 postSignup: jest.fn().mockResolvedValueOnce({}),
             }
             setupForSubmit({actions});
-
             fireEvent.click(button);
 
             const expectedUserObject = {
-                dispayName: 'my-display-name',
+                displayName: 'my-display-name',
                 username: 'my-username',
                 password: 'P4ssword',
             }
             expect(actions.postSignup).toHaveBeenCalledWith(expectedUserObject);
         });
-   
+
+        it('does not allow user to click the Signup button when there is an ongoing api call', () => {
+            const actions = {
+                postSignup: mockAsyncDelayed(),
+            }
+            setupForSubmit({actions});
+            fireEvent.click(button);
+            fireEvent.click(button);
+            expect(actions.postSignup).toHaveBeenCalledTimes(1);
+        });
+
+        it('displays spinner when there is an ongoing api call', () => {
+            const actions = {
+                postSignup: mockAsyncDelayed(),
+            }
+            const {queryByText} = setupForSubmit({actions});
+            
+            fireEvent.click(button);
+            const spinner = queryByText('Aguarde...');
+            expect(spinner).toBeInTheDocument();
+        });
+
+        it('hides spinner after api call finishes successfully', async() => {
+            const actions = {
+                postSignup: mockAsyncDelayed(),
+            }
+            const {queryByText} = setupForSubmit({actions});
+            
+            fireEvent.click(button);
+            const spinner = queryByText('Aguarde...');
+            await waitForElementToBeRemoved(spinner);
+            expect(spinner).not.toBeInTheDocument();
+        });
+
+
     });
 });
+console.error = () => {};
