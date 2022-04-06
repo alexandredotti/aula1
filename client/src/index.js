@@ -12,7 +12,7 @@ const actions = {
 
 ReactDOM.render(
   <React.StrictMode>
-    <UserSignupPage actions={actions}/>
+    <UserSignupPage actions={actions} />
   </React.StrictMode>,
   document.getElementById('root')
 );

@@ -68,14 +68,26 @@ describe('UserSignupPage', () => {
                         resolve({});
                     }, 500);
                 });
-            })
+            });
+        }
+
+        const mockAsyncDelayedRejected = () => {
+            return jest.fn().mockImplementation(() => {
+                return new Promise((resolve, reject) => {
+                    setTimeout(() => {
+                        reject({
+                            response: { data: {} }
+                        });
+                    }, 500);
+                });
+            });
         }
 
         let displayNameInput, usernameInput, passwordInput, passwordRepeatInput, button;
         const setupForSubmit = (props) => {
             const rendered = render(<UserSignupPage {...props} />);
 
-            const {container, queryByPlaceholderText} = rendered;
+            const { container, queryByPlaceholderText } = rendered;
 
             displayNameInput = queryByPlaceholderText('Informe o seu nome');
             usernameInput = queryByPlaceholderText('Informe o usuário');
@@ -91,7 +103,7 @@ describe('UserSignupPage', () => {
 
             return rendered;
         }
-        
+
         it('sets the displayName value into state', () => {
             const { queryByPlaceholderText } = render(<UserSignupPage />);
             const displayNameInput = queryByPlaceholderText('Informe o seu nome');
@@ -121,12 +133,12 @@ describe('UserSignupPage', () => {
             const actions = {
                 postSignup: jest.fn().mockResolvedValueOnce({}),
             }
-            setupForSubmit({actions});
+            setupForSubmit({ actions });
 
             fireEvent.click(button);
             expect(actions.postSignup).toHaveBeenCalledTimes(1);
         });
-   
+
 
         it('does not throw exception when clicking the button when actions are not provided in props', () => {
             setupForSubmit();
@@ -137,7 +149,7 @@ describe('UserSignupPage', () => {
             const actions = {
                 postSignup: jest.fn().mockResolvedValueOnce({}),
             }
-            setupForSubmit({actions});
+            setupForSubmit({ actions });
             fireEvent.click(button);
 
             const expectedUserObject = {
@@ -152,9 +164,11 @@ describe('UserSignupPage', () => {
             const actions = {
                 postSignup: mockAsyncDelayed(),
             }
-            setupForSubmit({actions});
+            setupForSubmit({ actions });
+
             fireEvent.click(button);
             fireEvent.click(button);
+
             expect(actions.postSignup).toHaveBeenCalledTimes(1);
         });
 
@@ -162,26 +176,59 @@ describe('UserSignupPage', () => {
             const actions = {
                 postSignup: mockAsyncDelayed(),
             }
-            const {queryByText} = setupForSubmit({actions});
-            
+            const { queryByText } = setupForSubmit({ actions });
             fireEvent.click(button);
+
             const spinner = queryByText('Aguarde...');
+
             expect(spinner).toBeInTheDocument();
         });
 
-        it('hides spinner after api call finishes successfully', async() => {
+        it('hides spinner after api call finishes successfully', async () => {
             const actions = {
                 postSignup: mockAsyncDelayed(),
             }
-            const {queryByText} = setupForSubmit({actions});
-            
+            const { queryByText } = setupForSubmit({ actions });
             fireEvent.click(button);
+
             const spinner = queryByText('Aguarde...');
             await waitForElementToBeRemoved(spinner);
+
             expect(spinner).not.toBeInTheDocument();
         });
 
+        it('hides spinner after api call finishes with error', async () => {
+            const actions = {
+                postSignup: mockAsyncDelayedRejected(),
+            }
+            const { queryByText } = setupForSubmit({ actions });
+            fireEvent.click(button);
 
+            const spinner = queryByText('Aguarde...');
+            await waitForElementToBeRemoved(spinner);
+
+            expect(spinner).not.toBeInTheDocument();
+        });
+
+        it('displays validation error for displayName when error is received for the field', async () => {
+            const actions = {
+                postSignup: jest.fn().mockRejectedValue({
+                    response: {
+                        data: {
+                            validationErrors: {
+                                displayName: "O nome não pode ser nulo.",
+                            },
+                        },
+                    },
+                }),
+            }
+            const { findByText } = setupForSubmit({ actions });
+            fireEvent.click(button);
+
+            const errorMessage = await findByText("O nome não pode ser nulo.");
+
+            expect(errorMessage).toBeInTheDocument();
+        });
     });
 });
-console.error = () => {};
+console.error = () => { }; 
