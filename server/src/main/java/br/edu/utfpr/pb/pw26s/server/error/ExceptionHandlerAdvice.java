@@ -19,13 +19,12 @@ public class ExceptionHandlerAdvice {
     ApiError handlerValidationException(MethodArgumentNotValidException exception,
                                         HttpServletRequest request) {
         Map<String, String> validationErrors = new HashMap<>();
-
-        for(FieldError error: exception.getBindingResult().getFieldErrors()) {
+        for (FieldError error : exception.getBindingResult().getFieldErrors()) {
             validationErrors.put(error.getField(), error.getDefaultMessage());
         }
-
-        return new ApiError(HttpStatus.BAD_REQUEST.value(), "validation error",
-                request.getServletPath(), validationErrors);
+        return new ApiError(HttpStatus.BAD_REQUEST.value(),
+                "validation error",
+                request.getServletPath(),
+                validationErrors);
     }
-
 }

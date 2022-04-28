@@ -16,17 +16,21 @@ public class ErrorHandler implements ErrorController {
     @Autowired
     private ErrorAttributes errorAttributes;
 
-    @RequestMapping("error")
+    @RequestMapping("/error")
     public ApiError handleError(WebRequest webRequest) {
-        Map<String, Object> attributes = errorAttributes.getErrorAttributes(webRequest,
-                ErrorAttributeOptions.of(ErrorAttributeOptions.Include.MESSAGE));
-        return new ApiError((Integer) attributes.get("status"),
-                            (String) attributes.get("message"),
-                            (String) attributes.get("url")
-                    );
+        Map<String, Object> attributes = errorAttributes.getErrorAttributes(
+                webRequest,
+                ErrorAttributeOptions.of(ErrorAttributeOptions.Include.MESSAGE)
+        );
+        return new ApiError(
+                (Integer) attributes.get("status"),
+                (String) attributes.get("message"),
+                (String) attributes.get("path")
+        );
     }
 
-    // @Override
+
+    @Override
     public String getErrorPath() {
         return "/error";
     }

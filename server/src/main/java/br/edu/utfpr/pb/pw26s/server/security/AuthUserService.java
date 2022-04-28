@@ -16,10 +16,11 @@ public class AuthUserService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String username)
-            throws UsernameNotFoundException {
+                                throws UsernameNotFoundException {
+
         User user = userRepository.findByUsername(username);
         if (user == null) {
-            throw new UsernameNotFoundException("User not found.");
+            throw new UsernameNotFoundException("User not found");
         }
         return user;
     }

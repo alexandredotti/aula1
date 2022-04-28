@@ -20,38 +20,56 @@ public class WebSecurity extends WebSecurityConfigurerAdapter {
 
     @Autowired
     private AuthUserService authUserService;
+
     @Autowired
     private AuthenticationEntryPoint authenticationEntryPoint;
 
     @Override
     protected void configure(HttpSecurity http) throws Exception {
         http.csrf().disable()
-            .exceptionHandling()
-                .authenticationEntryPoint(authenticationEntryPoint)
+                .exceptionHandling()
+                .authenticationEntryPoint( authenticationEntryPoint )
             .and()
             .authorizeRequests()
-                .antMatchers(HttpMethod.POST, "/users").permitAll()
-            .anyRequest().authenticated()
+                .antMatchers("/h2-console/**").permitAll()
+                .antMatchers(HttpMethod.POST,"/users").permitAll()
+                .antMatchers(HttpMethod.POST,"/cidades").hasAnyRole("ADMIN")
+                .anyRequest().authenticated()
             .and()
-            .addFilter(new JWTAuthenticationFilter(authenticationManager(), getApplicationContext()))
+                // Filters
+                .addFilter(
+                        new JWTAuthenticationFilter(authenticationManager(),
+                                getApplicationContext()))
+                .addFilter(
+                        new JWTAuthorizationFilter(authenticationManager(),
+                                getApplicationContext())
+                )
             .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS);
-        ;
+    }
+
+    @Override
+    public void configure(org.springframework.security.config.annotation.web.builders.WebSecurity web) throws Exception{
+        web
+                .ignoring()
+                .antMatchers("/h2-console/**");
+    }
+
+
+    @Override
+    protected void configure(AuthenticationManagerBuilder auth)
+            throws Exception {
+        auth.userDetailsService( userDetailsService() )
+                .passwordEncoder( passwordEncoder() );
     }
 
     @Override
     @Bean
-    protected UserDetailsService userDetailsService() {
+    public UserDetailsService userDetailsService() {
         return authUserService;
     }
 
     @Bean
-    protected PasswordEncoder passwordEncoder() {
+    public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
-    }
-
-    @Override
-    protected void configure(AuthenticationManagerBuilder auth) throws Exception {
-        auth.userDetailsService(userDetailsService())
-                .passwordEncoder(passwordEncoder());
     }
 }

@@ -1,8 +1,9 @@
 package br.edu.utfpr.pb.pw26s.server.security;
 
 import br.edu.utfpr.pb.pw26s.server.model.User;
+import com.auth0.jwt.JWT;
+import com.auth0.jwt.algorithms.Algorithm;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -16,6 +17,8 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.Date;
 
 public class JWTAuthenticationFilter extends UsernamePasswordAuthenticationFilter {
 
@@ -29,13 +32,14 @@ public class JWTAuthenticationFilter extends UsernamePasswordAuthenticationFilte
     }
 
     @Override
-    public Authentication attemptAuthentication(HttpServletRequest request,
-                                                HttpServletResponse response)
-            throws AuthenticationException {
+    public Authentication attemptAuthentication(HttpServletRequest request, HttpServletResponse response) throws AuthenticationException {
         try {
-            User credentials =
-                    new ObjectMapper().readValue(request.getInputStream(), User.class);
-            User user = (User) authUserService.loadUserByUsername(credentials.getUsername());
+            User credentials = new ObjectMapper().readValue(
+                    request.getInputStream(), User.class);
+            User user = (User)
+                    authUserService.loadUserByUsername(credentials.getUsername());
+
+
             return authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
                             credentials.getUsername(),
@@ -54,7 +58,17 @@ public class JWTAuthenticationFilter extends UsernamePasswordAuthenticationFilte
                                             FilterChain chain,
                                             Authentication authResult)
             throws IOException, ServletException {
-        // String token = JWT
+
+        String token = JWT.create()
+                .withSubject(authResult.getName())
+                .withExpiresAt(new Date(System.currentTimeMillis() +
+                                        SecurityConstants.EXPIRATION_TIME))
+                .sign(Algorithm.HMAC512(SecurityConstants.SECRET.getBytes()));
+        response.setContentType("application/json");
+        response.getWriter().write(
+                new ObjectMapper().writeValueAsString(
+                        new AuthenticationResponse(token))
+        );
     }
 
     @Override

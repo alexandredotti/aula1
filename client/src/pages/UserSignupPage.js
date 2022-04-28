@@ -1,110 +1,122 @@
-import React from "react";
+import React, { useState } from "react";
+import ButtonWithProgress from '../components/ButtonWithProgress';
 import Input from '../components/input';
 
-export class UserSignupPage extends React.Component {
-    state = {
+export const UserSignupPage = (props) => {
+    const [form, setForm] = useState({
         displayName: '',
         username: '',
         password: '',
         passwordRepeat: '',
-        pendingApiCall: false,
-        errors: {},
+    });
+    const [errors, setErrors] = useState({});
+    const [pendingApiCall, setPendingApiCall] = useState(false);
+
+   const onChange = (event) => {
+        const {value, name} = event.target;
+        setForm((previousForm) => {
+            return {
+                ...previousForm,
+                [name] : value,
+            };
+        });
+        setErrors((previousErrors) => {
+            return {
+                ...previousErrors,
+                [name] : undefined,
+            };
+        });
     }
 
-    onChangeDisplayName = (event) => {
-        const value = event.target.value;
-        this.setState({ displayName: value });
-    }
-    onChangeUsername = (event) => {
-        const value = event.target.value;
-        this.setState({ username: value });
-    }
-    onChangePassword = (event) => {
-        const value = event.target.value;
-        this.setState({ password: value });
-    }
-    onChangePasswordRepeat = (event) => {
-        const value = event.target.value;
-        this.setState({ passwordRepeat: value });
-    }
-
-    onClickSignup = () => {
+    const onClickSignup = () => {
         const user = {
-            displayName: this.state.displayName,
-            username: this.state.username,
-            password: this.state.password
+            displayName: form.displayName,
+            username: form.username,
+            password: form.password
         }
-        this.setState({ pendingApiCall: true });
-        this.props.actions.postSignup(user).then(response => {
-            this.setState({ pendingApiCall: false });
-        })
-            .catch(apiError => {
-                let errors = { ...this.state.errors };
+        setpendingApiCall(true);
+        AuthService.signup(user).then(response => {
+            setpendingApiCall(false);
+        }).catch(apiError => {
                 if (apiError.response.data && apiError.response.data.validationErrors) {
-                    errors = { ...apiError.response.data.validationErrors }
-                    console.log(errors);
+                    setErrors(apiError.response.data.validationErrors);
                 }
-                this.setState({ pendingApiCall: false, errors });
+                setpendingApiCall(false);
             });
-    }
+    };
 
-    render() {
+    let passwordRepeatError;
+    const {password, passwordRepeat} = form;
+    if (password || passwordRepeat){
+        passwordRepeatError = password === passwordRepeat ? '' : 'As senhas devem ser iguais';
+    }
+   
         return (
             <div className="container">
                 <h1 className="text-center">Sign Up</h1>
                 <div className="col-12 mb-3">
                     <Input
+                        name="displayName"
                         label="Informe o seu nome"
                         className="form-control"
-                        type="text" 
-                        placeholder="Informe o seu nome"
-                        onChange={this.onChangeDisplayName}
-                        value={this.state.displayName}
-                        hasError={this.state.errors.displayName && true}
-                        error={this.state.errors.displayName}
+                        type="text"
+                        placeholder="Informe seu nome"
+                        onChange={onChange}
+                        value={form.displayName}
+                        hasError={errors.displayName && true}
+                        error={errors.displayName}
                     />
-
                 </div>
                 <div className="col-12 mb-3">
-                    <label>Informe o usuário</label>
-                    <input className="form-control"
-                        type="text" placeholder="Informe o usuário"
-                        onChange={this.onChangeUsername}
-                        value={this.state.username} />
+                    <Input
+                        name="userName"
+                        label="Informe o usuário"
+                        className="form-control"
+                        type="text" 
+                        placeholder="Informe o usuário"
+                        onChange={onChange}
+                        value={form.username}
+                        hasError={errors.userName && true}
+                        error={errors.userName} />
                 </div>
                 <div className="col-12 mb-3">
-                    <label>Informe a sua senha</label>
-                    <input className="form-control"
-                        type="password" placeholder="Informe a sua senha"
-                        onChange={this.onChangePassword}
-                        value={this.state.password} />
+                    <Input
+                        name="password"
+                        label="Informe a sua senha" 
+                        className="form-control"
+                        type="password" 
+                        placeholder="Informe sua senha"
+                        onChange={onChange}
+                        value={form.password}
+                        hasError={errors.password && true}
+                        error={errors.password} />
                 </div>
                 <div className="col-12 mb-3">
-                    <label>Confirme sua senha</label>
-                    <input className="form-control"
-                        type="password" placeholder="Confirme sua senha"
-                        onChange={this.onChangePasswordRepeat}
-                        value={this.state.passwordRepeat} />
+                    <Input
+                        name="passwordRepeat"
+                        label="Confirme sua senha"
+                        className="form-control"
+                        type="password" 
+                        placeholder="Confirme sua senha"
+                        onChange={onChange}
+                        value={form.passwordRepeat}
+                        hasError={passwordRepeatError && true}
+                        error={passwordRepeatError} />
                 </div>
                 <div className="text-center">
-                    <button disabled={this.state.pendingApiCall}
-                        className="btn btn-primary" onClick={this.onClickSignup}
-                    >
-                        {this.state.pendingApiCall && (
-                            <div className="spinner-border text-light-spinner spinner-border-sm mr-sm-1"
-                                role="status">
-                                <span className="visually-hidden">Aguarde...</span>
-                            </div>
-                        )}
-                        Cadastrar
-                    </button>
+                    <ButtonWithProgress
+                        onClick={onClickSignup}
+                        disabled={pendingApiCall || passwordRepeatError ? true : false}
+                        text="Cadastrar"
+                        pendingApiCall={pendingApiCall}
+                    />
                 </div>
             </div>
         );
 
 
     }
-}
+
 UserSignupPage.defaultProps = {
     actions: {
         postSignup: () =>
